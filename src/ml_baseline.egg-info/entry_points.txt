@@ -1,0 +1,2 @@
+[console_scripts]
+ml-baseline = ml_baseline.cli:main

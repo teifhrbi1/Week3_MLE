@@ -1,5 +1,0 @@
-user_id,country,n_orders,avg_amount,total_amount,is_high_value
-u001,US,3,12,36,0
-u002,CA,7,15,105,1
-u003,GB,1,9,9,0
-u004,US,10,8,80,1

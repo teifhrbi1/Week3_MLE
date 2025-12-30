@@ -1,0 +1,19 @@
+{
+  "run_id": "2025-12-30T09-04-44Z__classification__seed42",
+  "task": "classification",
+  "seed": 42,
+  "data_path": "data/processed/features.csv",
+  "target": "is_high_value",
+  "id_cols": [
+    "user_id"
+  ],
+  "feature_cols": [
+    "country",
+    "n_orders",
+    "avg_amount",
+    "total_amount"
+  ],
+  "test_size": 0.5,
+  "stratify": true,
+  "created_at_utc": "2025-12-30T09-04-44Z"
+}

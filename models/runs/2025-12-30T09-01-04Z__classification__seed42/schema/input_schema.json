@@ -1,0 +1,15 @@
+{
+  "id_cols": [
+    "user_id"
+  ],
+  "target": "is_high_value",
+  "feature_cols": [
+    "country",
+    "n_orders",
+    "avg_amount",
+    "total_amount"
+  ],
+  "forbidden_cols": [
+    "is_high_value"
+  ]
+}

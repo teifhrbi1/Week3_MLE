@@ -1,0 +1,5 @@
+{
+  "baseline": "mean_target_probability",
+  "train_positive_rate": 0.5,
+  "holdout_size": 2
+}

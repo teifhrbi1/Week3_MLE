@@ -2,14 +2,14 @@
 
 ## 1) What is the prediction?
 - **Target (y):** `is_high_value`
-- **Unit of analysis:** one row = one user (aggregated features per user)
-- **Decision supported:** prioritize high-value users for retention/marketing actions
+- **Target meaning:** binary label indicating whether a user is classified as high-value (`1`) or not (`0`).
+- **Unit of analysis:** one row = one **user** (aggregated user-level features)
 
 ## 2) Data contract (inference)
 - **ID passthrough columns:** `user_id`
 - **Required feature columns (X):** `country`, `n_orders`, `avg_amount`, `total_amount`
-- **Forbidden columns:** `is_high_value` (target) + any leakage fields that encode the label or future outcomes
+- **Forbidden columns:** `is_high_value` (target) + any label/leakage columns (e.g., `target`, `label`, post-outcome or future-derived fields)
 
-## 3) Evaluation plan (fill on Day 2–3)
-- **Split strategy:** stratified train/validation split on `is_high_value` (or time-based if timestamps exist)
-- **Primary metric:** ROC-AUC (and/or F1 for positive-class focus)
+## 3) Notes (draft)
+- **Assumptions:** features are pre-aggregated per user and available at prediction time.
+- **Data quality checks:** no missing `user_id`; valid numeric ranges for `n_orders`, `avg_amount`, `total_amount`.

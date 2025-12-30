@@ -3,37 +3,40 @@ from __future__ import annotations
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.linear_model import LogisticRegression, Ridge
 
 
-def build_pipeline(*, X: pd.DataFrame, task: str):
-    """
-    Week 3 baseline pipeline:
-    - numeric: median imputation
-    - categorical: most_frequent imputation + one-hot (ignore unknown)
-    - classification: LogisticRegression
-    - regression: Ridge
-    """
+def build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
     num_cols = X.select_dtypes(include=["number"]).columns.tolist()
     cat_cols = [c for c in X.columns if c not in num_cols]
 
-    pre = ColumnTransformer(
+    return ColumnTransformer(
         transformers=[
             ("num", SimpleImputer(strategy="median"), num_cols),
-            ("cat", Pipeline(steps=[
-                ("imp", SimpleImputer(strategy="most_frequent")),
-                ("oh", OneHotEncoder(handle_unknown="ignore")),
-            ]), cat_cols),
+            (
+                "cat",
+                Pipeline(
+                    steps=[
+                        ("imp", SimpleImputer(strategy="most_frequent")),
+                        ("oh", OneHotEncoder(handle_unknown="ignore")),
+                    ]
+                ),
+                cat_cols,
+            ),
         ],
         remainder="drop",
-        sparse_threshold=0.3,
     )
 
-    if task == "classification":
-        model = LogisticRegression(max_iter=500, solver="liblinear", random_state=42)
-    else:
-        model = Ridge()
 
+def build_pipeline(*, X: pd.DataFrame, task: str) -> Pipeline:
+    pre = build_preprocessor(X)
+
+    if task == "classification":
+        model = LogisticRegression(max_iter=500)
+        return Pipeline(steps=[("pre", pre), ("model", model)])
+
+    # regression
+    model = Ridge()
     return Pipeline(steps=[("pre", pre), ("model", model)])

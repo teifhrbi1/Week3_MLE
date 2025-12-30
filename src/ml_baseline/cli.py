@@ -6,6 +6,7 @@ from pathlib import Path
 from ml_baseline.train import run_train
 from ml_baseline.show_run import show_run
 
+
 def make_sample_data() -> None:
     out = Path("data/processed/sample_features.csv")
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -18,8 +19,11 @@ def make_sample_data() -> None:
         w.writerow(["u004", 10, 80, 1])
     print(f"✅ wrote: {out}")
 
+
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="ml-baseline", description="Week 3 ML baseline system")
+    p = argparse.ArgumentParser(
+        prog="ml-baseline", description="Week 3 ML baseline system"
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     p_train = sub.add_parser("train", help="Train baseline")
@@ -34,6 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("report", help="Report (placeholder)")
     sub.add_parser("make-sample-data", help="Create sample data")
     return p
+
 
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
@@ -52,6 +57,7 @@ def main(argv=None) -> int:
 
     print(f"✅ Command received: {args.cmd} (placeholder)")
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

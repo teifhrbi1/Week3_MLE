@@ -3,3 +3,9 @@ Name: ml-baseline
 Version: 0.1.0
 Summary: Week 3 ML baseline system
 Requires-Python: >=3.10
+Requires-Dist: joblib>=1.5.3
+Requires-Dist: numpy>=2.2.6
+Requires-Dist: pandas>=2.3.3
+Requires-Dist: pyarrow>=22.0.0
+Requires-Dist: scikit-learn>=1.7.2
+Requires-Dist: scipy>=1.15.3

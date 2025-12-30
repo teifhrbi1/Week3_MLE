@@ -2,17 +2,22 @@ from __future__ import annotations
 from pathlib import Path
 import json
 
+
 def _root() -> Path:
     return Path(__file__).resolve().parents[2]
+
 
 def resolve_run_id(which: str) -> str:
     root = _root()
     if which == "latest":
         p = root / "models" / "registry" / "latest.txt"
         if not p.exists():
-            raise FileNotFoundError("models/registry/latest.txt not found (run train first).")
+            raise FileNotFoundError(
+                "models/registry/latest.txt not found (run train first)."
+            )
         return p.read_text(encoding="utf-8").strip()
     return which
+
 
 def show_run(which: str = "latest") -> None:
     root = _root()

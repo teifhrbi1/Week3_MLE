@@ -72,7 +72,11 @@ def run_train(target: str = "target", seed: int = 42, test_size: float = 0.2) ->
     (run_dir / "tables").mkdir(parents=True, exist_ok=True)
 
     # Schema
-    id_cols = [c for c in df.columns if c.lower() in {"id", "user_id"} or c.lower().endswith("_id")]
+    id_cols = [
+        c
+        for c in df.columns
+        if c.lower() in {"id", "user_id"} or c.lower().endswith("_id")
+    ]
     feature_cols = [c for c in df.columns if c not in set(id_cols + [target])]
 
     (run_dir / "schema" / "input_schema.json").write_text(
@@ -101,7 +105,11 @@ def run_train(target: str = "target", seed: int = 42, test_size: float = 0.2) ->
     joblib.dump(model_obj, run_dir / "model" / "model.joblib")
 
     # Tables
-    (test_df[id_cols + feature_cols + [target]] if id_cols else test_df[feature_cols + [target]]).to_csv(
+    (
+        test_df[id_cols + feature_cols + [target]]
+        if id_cols
+        else test_df[feature_cols + [target]]
+    ).to_csv(
         run_dir / "tables" / "holdout_input.csv",
         index=False,
     )
@@ -136,14 +144,24 @@ def run_train(target: str = "target", seed: int = 42, test_size: float = 0.2) ->
 
         (run_dir / "metrics" / "baseline_holdout.json").write_text(
             json.dumps(
-                {"baseline": "mean_target_probability", "train_positive_rate": p_mean, "holdout_size": int(len(preds))},
+                {
+                    "baseline": "mean_target_probability",
+                    "train_positive_rate": p_mean,
+                    "holdout_size": int(len(preds)),
+                },
                 indent=2,
             ),
             encoding="utf-8",
         )
         (run_dir / "metrics" / "holdout_metrics.json").write_text(
             json.dumps(
-                {"accuracy": acc, "precision": prec, "recall": rec, "f1": f1, "confusion_matrix": {"tp": tp, "tn": tn, "fp": fp, "fn": fn}},
+                {
+                    "accuracy": acc,
+                    "precision": prec,
+                    "recall": rec,
+                    "f1": f1,
+                    "confusion_matrix": {"tp": tp, "tn": tn, "fp": fp, "fn": fn},
+                },
                 indent=2,
             ),
             encoding="utf-8",

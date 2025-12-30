@@ -2,8 +2,17 @@ pyproject.toml
 src/ml_baseline/__init__.py
 src/ml_baseline/__main__.py
 src/ml_baseline/cli.py
+src/ml_baseline/metrics.py
+src/ml_baseline/pipeline.py
+src/ml_baseline/sample_data.py
+src/ml_baseline/show_run.py
+src/ml_baseline/splits.py
+src/ml_baseline/train.py
+src/ml_baseline/train_impl.py
 src/ml_baseline.egg-info/PKG-INFO
 src/ml_baseline.egg-info/SOURCES.txt
 src/ml_baseline.egg-info/dependency_links.txt
 src/ml_baseline.egg-info/entry_points.txt
+src/ml_baseline.egg-info/requires.txt
 src/ml_baseline.egg-info/top_level.txt
+tests/test_smoke.py

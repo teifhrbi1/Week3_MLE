@@ -10,8 +10,14 @@ import joblib
 
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score, roc_auc_score,
-    mean_squared_error, mean_absolute_error, r2_score,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    mean_squared_error,
+    mean_absolute_error,
+    r2_score,
 )
 
 from ml_baseline.splits import random_split
@@ -44,7 +50,9 @@ def _infer_task(y: pd.Series) -> str:
 
 
 def _id_cols(cols: list[str]) -> list[str]:
-    return [c for c in cols if c.lower() in {"id", "user_id"} or c.lower().endswith("_id")]
+    return [
+        c for c in cols if c.lower() in {"id", "user_id"} or c.lower().endswith("_id")
+    ]
 
 
 def _ensure_stratify_ok(n: int, test_size: float) -> tuple[bool, float]:
@@ -57,7 +65,9 @@ def _ensure_stratify_ok(n: int, test_size: float) -> tuple[bool, float]:
     return True, max(test_size, min_ts)
 
 
-def classification_metrics(y_true: np.ndarray, y_score: np.ndarray, threshold: float = 0.5) -> dict:
+def classification_metrics(
+    y_true: np.ndarray, y_score: np.ndarray, threshold: float = 0.5
+) -> dict:
     y_pred = (y_score >= threshold).astype(int)
     out = {
         "accuracy": float(accuracy_score(y_true, y_pred)),
@@ -113,14 +123,14 @@ def run_train(*, target: str = "target", seed: int = 42, test_size: float = 0.2)
     feature_cols = [c for c in df.columns if c not in set(id_cols + [target])]
 
     X_train = train_df[feature_cols]
-    X_test  = test_df[feature_cols]
+    X_test = test_df[feature_cols]
 
     # --- Build + fit pipeline (Task 5) ---
     pipe = build_pipeline(X=X_train, task=task)
 
     if task == "classification":
         y_train = train_df[target].astype(int).to_numpy()
-        y_true  = test_df[target].astype(int).to_numpy()
+        y_true = test_df[target].astype(int).to_numpy()
         pipe.fit(X_train, y_train)
 
         # Probabilities (avoid "string to float" by preprocessor)
@@ -141,7 +151,7 @@ def run_train(*, target: str = "target", seed: int = 42, test_size: float = 0.2)
 
     else:
         y_train = train_df[target].astype(float).to_numpy()
-        y_true  = test_df[target].astype(float).to_numpy()
+        y_true = test_df[target].astype(float).to_numpy()
         pipe.fit(X_train, y_train)
 
         y_pred = pipe.predict(X_test)
@@ -182,7 +192,9 @@ def run_train(*, target: str = "target", seed: int = 42, test_size: float = 0.2)
     joblib.dump(pipe, run_dir / "model" / "model.joblib")
 
     # Tables
-    keep_cols = (id_cols + feature_cols + [target]) if id_cols else (feature_cols + [target])
+    keep_cols = (
+        (id_cols + feature_cols + [target]) if id_cols else (feature_cols + [target])
+    )
     test_df[keep_cols].to_csv(run_dir / "tables" / "holdout_input.csv", index=False)
 
     if id_cols:

@@ -1,78 +1,71 @@
 from __future__ import annotations
-import json
-from dataclasses import dataclass, field
-from pathlib import Path
+
+from dataclasses import dataclass
+from typing import Any
+
 import pandas as pd
+
 
 @dataclass(frozen=True)
 class InputSchema:
     required_feature_columns: list[str]
+    optional_id_columns: list[str]
+    forbidden_columns: list[str]
     feature_dtypes: dict[str, str]
-    optional_id_columns: list[str] = field(default_factory=list)
-    forbidden_columns: list[str] = field(default_factory=list)
 
-    @staticmethod
-    def from_training_df(
-        df: pd.DataFrame, *, target: str, id_cols: list[str]
-    ) -> "InputSchema":
-        optional_ids = [c for c in id_cols if c in df.columns]
-        feature_cols = [c for c in df.columns if c not in set([target] + optional_ids)]
-        feature_dtypes = {c: str(df[c].dtype) for c in feature_cols}
-        return InputSchema(
-            required_feature_columns=feature_cols,
-            feature_dtypes=feature_dtypes,
-            optional_id_columns=optional_ids,
-            forbidden_columns=[target],
-        )
 
-    def dump(self, path: Path) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            json.dumps(
-                {
-                    "required_feature_columns": self.required_feature_columns,
-                    "feature_dtypes": self.feature_dtypes,
-                    "optional_id_columns": self.optional_id_columns,
-                    "forbidden_columns": self.forbidden_columns,
-                },
-                indent=2,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
-
-    @staticmethod
-    def load(path: Path) -> "InputSchema":
-        d = json.loads(path.read_text(encoding="utf-8"))
-        return InputSchema(
-            required_feature_columns=list(d["required_feature_columns"]),
-            feature_dtypes=dict(d["feature_dtypes"]),
-            optional_id_columns=list(d.get("optional_id_columns", [])),
-            forbidden_columns=list(d.get("forbidden_columns", [])),
-        )
+def _is_numeric_dtype_str(dt: str) -> bool:
+    s = (dt or "").lower()
+    return any(x in s for x in ["int", "int64", "int32", "float", "float64", "float32", "number"])
 
 
 def validate_and_align(df_in: pd.DataFrame, schema: InputSchema) -> tuple[pd.DataFrame, pd.DataFrame]:
-    forbidden = [c for c in schema.forbidden_columns if c in df_in.columns]
-    assert not forbidden, f"Forbidden columns present in inference input: {forbidden}"
+    """
+    Validate inference/training input against a schema and return:
+      - X: DataFrame with REQUIRED features only, aligned in schema order
+      - ids: DataFrame with OPTIONAL id columns if present (passthrough)
 
+    Rules:
+      - Fail fast if any forbidden columns are present (e.g., target/leakage)
+      - Fail fast if any required features are missing (error names the columns)
+      - Normalize dtypes: numeric -> to_numeric(errors="coerce"), else -> string dtype
+    """
+    # 1) Forbidden columns check (fail fast)
+    forbidden_present = [c for c in schema.forbidden_columns if c in df_in.columns]
+    if forbidden_present:
+        raise ValueError(f"Forbidden columns present in inference input: {forbidden_present}")
+
+    # 2) Missing required features check (fail fast)
     missing = [c for c in schema.required_feature_columns if c not in df_in.columns]
-    assert not missing, f"Missing required feature columns: {missing}"
+    if missing:
+        raise ValueError(f"Missing required feature columns: {missing}")
 
     df = df_in.copy()
 
-    # optional passthrough IDs
+    # 3) Extract optional IDs if present
     id_cols = [c for c in schema.optional_id_columns if c in df.columns]
-    passthrough = df[id_cols].copy() if id_cols else pd.DataFrame(index=df.index)
+    ids = df[id_cols].copy() if id_cols else pd.DataFrame(index=df.index)
 
-    # dtype normalization (simple)
-    for c, dt in schema.feature_dtypes.items():
+    # 4) Normalize dtypes (tolerant: coerce)
+    for c, dt in (schema.feature_dtypes or {}).items():
         if c not in df.columns:
             continue
-        if any(x in dt.lower() for x in ["int", "float"]):
+        if _is_numeric_dtype_str(dt):
             df[c] = pd.to_numeric(df[c], errors="coerce")
         else:
+            # Use pandas "string" dtype to avoid mixed object issues
             df[c] = df[c].astype("string")
 
+    # 5) Align X to required features only in the exact schema order
     X = df[schema.required_feature_columns].copy()
-    return X, passthrough
+    return X, ids
+
+
+def schema_from_dict(d: dict[str, Any]) -> InputSchema:
+    # Helper (optional): supports slightly different keys
+    return InputSchema(
+        required_feature_columns=d.get("required_feature_columns") or d.get("required_columns") or [],
+        optional_id_columns=d.get("optional_id_columns") or d.get("id_columns") or [],
+        forbidden_columns=d.get("forbidden_columns") or d.get("forbidden") or [],
+        feature_dtypes=d.get("feature_dtypes") or d.get("dtypes") or {},
+    )

@@ -4,6 +4,8 @@ src/ml_baseline/__main__.py
 src/ml_baseline/cli.py
 src/ml_baseline/metrics.py
 src/ml_baseline/pipeline.py
+src/ml_baseline/predict.py
+src/ml_baseline/run_dirs.py
 src/ml_baseline/run_meta.py
 src/ml_baseline/sample_data.py
 src/ml_baseline/schema.py
@@ -17,4 +19,5 @@ src/ml_baseline.egg-info/dependency_links.txt
 src/ml_baseline.egg-info/entry_points.txt
 src/ml_baseline.egg-info/requires.txt
 src/ml_baseline.egg-info/top_level.txt
+tests/test_schema.py
 tests/test_smoke.py

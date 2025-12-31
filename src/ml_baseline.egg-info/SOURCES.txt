@@ -4,7 +4,9 @@ src/ml_baseline/__main__.py
 src/ml_baseline/cli.py
 src/ml_baseline/metrics.py
 src/ml_baseline/pipeline.py
+src/ml_baseline/run_meta.py
 src/ml_baseline/sample_data.py
+src/ml_baseline/schema.py
 src/ml_baseline/show_run.py
 src/ml_baseline/splits.py
 src/ml_baseline/train.py

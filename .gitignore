@@ -3,3 +3,5 @@ __pycache__/
 .venv/
 models/
 data/processed/
+
+PATH/TO/FILE

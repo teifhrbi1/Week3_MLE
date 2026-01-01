@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 import typer
+
 from .config import Paths, PredictConfig, TrainConfig
 from .io import best_effort_ext
 from .predict import resolve_run_dir, run_predict

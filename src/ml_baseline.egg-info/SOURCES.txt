@@ -2,6 +2,8 @@ pyproject.toml
 src/ml_baseline/__init__.py
 src/ml_baseline/__main__.py
 src/ml_baseline/cli.py
+src/ml_baseline/config.py
+src/ml_baseline/io.py
 src/ml_baseline/metrics.py
 src/ml_baseline/pipeline.py
 src/ml_baseline/predict.py

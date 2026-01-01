@@ -6,8 +6,7 @@ import logging
 import platform
 import subprocess
 import sys
-
-# AUTO-PATCH: removed unused asdict import
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -56,13 +55,7 @@ def make_run_id(*, task: str, seed: int) -> str:
 
 
 def _jsonable_cfg(cfg: TrainConfig) -> dict[str, Any]:
-    # AUTO-PATCH: cfg may not be a dataclass in this template
-    try:
-        from dataclasses import asdict, is_dataclass
-
-        d = asdict(cfg) if is_dataclass(cfg) else dict(vars(cfg))
-    except Exception:
-        d = dict(getattr(cfg, "__dict__", {}) or {})
+    d = asdict(cfg)
     d["features_path"] = str(cfg.features_path)
     d["id_cols"] = list((getattr(cfg, "id_cols", []) or []))
     return d
@@ -207,10 +200,6 @@ def run_train(cfg: TrainConfig, *, root: Path | None = None) -> Path:
             ],
             axis=1,
         )
-    # AUTO-PATCH: default ext to .csv when missing
-    if ext == "":
-        ext = ".csv"
-
     holdout_input_path = run_dir / "tables" / f"holdout_input{ext}"
     write_tabular(holdout_input, holdout_input_path)
 

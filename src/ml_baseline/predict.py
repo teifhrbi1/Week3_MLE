@@ -44,7 +44,10 @@ def _load_json(p: Path) -> dict:
 
 
 def run_predict(cfg: PredictConfig) -> None:
-    meta = _load_json(cfg.run_dir / "run_meta.json")
+    meta_path = cfg.run_dir / "run_meta.json"
+    if not meta_path.exists():
+        meta_path = cfg.run_dir / "_run_meta.json"
+    meta = _load_json(meta_path)
 
     schema_path = cfg.run_dir / "schema" / "input_schema.json"
     schema_raw = _load_json(schema_path)

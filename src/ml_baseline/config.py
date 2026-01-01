@@ -61,8 +61,13 @@ class Paths:
     def reports_dir(self) -> Path:
         return self.root / "reports"
 
+    # ✅ نخليها "مرنة" لأن ملفات train/predict عندك ممكن تتوقع حقول مختلفة
+    @property
+    def registry_dir(self) -> Path:
+        """Directory that stores registry pointers (e.g., latest.txt)."""
+        return self.root / "models" / "registry"
 
-# ✅ نخليها "مرنة" لأن ملفات train/predict عندك ممكن تتوقع حقول مختلفة
+
 class TrainConfig:
     def __init__(self, **kwargs: Any):
         self.__dict__.update(kwargs)

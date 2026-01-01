@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 from dataclasses import dataclass
 from typing import Any
 
@@ -91,40 +88,25 @@ try:
 except Exception:
     _pd = None
 
-
 def _dtype_to_str(dtype) -> str:
     """Normalize pandas/numpy dtype to a simple string."""
     if _pd is not None:
         try:
-            if _pd.api.types.is_bool_dtype(dtype):
-                return "bool"
-            if _pd.api.types.is_integer_dtype(dtype):
-                return "int"
-            if _pd.api.types.is_float_dtype(dtype):
-                return "float"
+            if _pd.api.types.is_bool_dtype(dtype):   return "bool"
+            if _pd.api.types.is_integer_dtype(dtype): return "int"
+            if _pd.api.types.is_float_dtype(dtype):   return "float"
         except Exception:
             pass
     s = str(dtype)
-    if "int" in s:
-        return "int"
-    if "float" in s:
-        return "float"
-    if "bool" in s:
-        return "bool"
+    if "int" in s:   return "int"
+    if "float" in s: return "float"
+    if "bool" in s:  return "bool"
     return "string"
-
 
 def _auto_build_schema_candidates(feature_names, dtypes_map, id_cols):
     """Return multiple dict shapes to try with schema_from_dict, if available."""
-    cols_list = [
-        {
-            "name": n,
-            "dtype": dtypes_map[n],
-            "role": ("id" if n in id_cols else "feature"),
-        }
-        for n in feature_names
-    ]
-    cols_map = {n: dtypes_map[n] for n in feature_names}
+    cols_list = [{"name": n, "dtype": dtypes_map[n], "role": ("id" if n in id_cols else "feature")} for n in feature_names]
+    cols_map  = {n: dtypes_map[n] for n in feature_names}
 
     return [
         {"version": 1, "id_cols": list(id_cols), "columns": cols_list},
@@ -135,7 +117,6 @@ def _auto_build_schema_candidates(feature_names, dtypes_map, id_cols):
         {"schema": {"version": 1, "id_cols": list(id_cols), "columns": cols_list}},
         {"schema": {"version": 1, "id_cols": list(id_cols), "columns": cols_map}},
     ]
-
 
 def _auto_from_env(cls, df, id_cols=None, target=None, drop_cols=None, **kwargs):
     """
@@ -168,13 +149,8 @@ def _auto_from_env(cls, df, id_cols=None, target=None, drop_cols=None, **kwargs)
 
     # 2) Otherwise instantiate InputSchema directly using signature heuristics
     import inspect
-
     sig = inspect.signature(cls)
-    params = [
-        p
-        for p in sig.parameters.values()
-        if p.name != "self" and p.kind not in (p.VAR_POSITIONAL, p.VAR_KEYWORD)
-    ]
+    params = [p for p in sig.parameters.values() if p.name != "self" and p.kind not in (p.VAR_POSITIONAL, p.VAR_KEYWORD)]
 
     def try_init(payload: dict):
         try:
@@ -191,9 +167,7 @@ def _auto_from_env(cls, df, id_cols=None, target=None, drop_cols=None, **kwargs)
     # Style A: columns mapping
     if "columns" in names:
         attempts.append({"columns": {c: dtypes_map[c] for c in feature_names}})
-        attempts.append(
-            {"columns": [{"name": c, "dtype": dtypes_map[c]} for c in feature_names]}
-        )
+        attempts.append({"columns": [{"name": c, "dtype": dtypes_map[c]} for c in feature_names]})
 
     # Style B: dtypes mapping
     if "dtypes" in names:
@@ -201,20 +175,13 @@ def _auto_from_env(cls, df, id_cols=None, target=None, drop_cols=None, **kwargs)
 
     # IDs / required / optional / version fields (if exist)
     base = {}
-    if "id_cols" in names:
-        base["id_cols"] = list(id_cols)
-    if "required" in names:
-        base["required"] = list(feature_names)
-    if "optional" in names:
-        base["optional"] = []
-    if "version" in names:
-        base["version"] = 1
-    if "schema_version" in names:
-        base["schema_version"] = 1
-    if "features" in names:
-        base["features"] = list(feature_names)
-    if "feature_names" in names:
-        base["feature_names"] = list(feature_names)
+    if "id_cols" in names: base["id_cols"] = list(id_cols)
+    if "required" in names: base["required"] = list(feature_names)
+    if "optional" in names: base["optional"] = []
+    if "version" in names: base["version"] = 1
+    if "schema_version" in names: base["schema_version"] = 1
+    if "features" in names: base["features"] = list(feature_names)
+    if "feature_names" in names: base["feature_names"] = list(feature_names)
 
     attempts = [{**a, **base} for a in attempts] or [base]
 
@@ -231,77 +198,10 @@ def _auto_from_env(cls, df, id_cols=None, target=None, drop_cols=None, **kwargs)
             return inst
 
     # If we got here, we couldn't build it
-    raise RuntimeError(
-        "AUTO from_env could not instantiate InputSchema; check schema.py constructor fields."
-    )
-
+    raise RuntimeError("AUTO from_env could not instantiate InputSchema; check schema.py constructor fields.")
 
 # Attach method if missing
 if not hasattr(InputSchema, "from_env"):
     InputSchema.from_env = classmethod(_auto_from_env)
 
 # === END AUTO-ADDED ===
-
-
-def _inputschema_to_dict(self):
-    # Works for dataclass-like or pydantic-like objects
-    if hasattr(self, "model_dump"):
-        return self.model_dump()
-    if hasattr(self, "dict"):
-        return self.dict()
-    return {
-        "required_feature_columns": list(getattr(self, "required_feature_columns", [])),
-        "optional_id_columns": list(getattr(self, "optional_id_columns", [])),
-        "forbidden_columns": list(getattr(self, "forbidden_columns", [])),
-        "feature_dtypes": dict(getattr(self, "feature_dtypes", {})),
-    }
-
-
-def _inputschema_dump(self, path):
-    out = Path(path)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(
-        json.dumps(_inputschema_to_dict(self), indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
-
-
-def _inputschema_from_env(
-    cls, df, id_cols=None, drop_cols=None, target=None, root=None, **kwargs
-):
-    id_cols = list(id_cols or [])
-    drop_cols = list(drop_cols or [])
-
-    cols = list(df.columns)
-
-    # remove explicit drops
-    cols = [c for c in cols if c not in drop_cols]
-
-    forbidden = []
-    if target:
-        forbidden.append(target)
-        cols = [c for c in cols if c != target]
-
-    # treat id cols as optional passthrough (not model features)
-    feature_cols = [c for c in cols if c not in id_cols]
-
-    feature_dtypes = {c: str(df[c].dtype) for c in feature_cols}
-
-    return cls(
-        required_feature_columns=feature_cols,
-        optional_id_columns=id_cols,
-        forbidden_columns=forbidden,
-        feature_dtypes=feature_dtypes,
-    )
-
-
-# Attach methods safely (won't crash if class name changes)
-try:
-    InputSchema.dump = _inputschema_dump  # type: ignore[name-defined]
-except Exception:
-    pass
-
-try:
-    InputSchema.from_env = classmethod(_inputschema_from_env)  # type: ignore[name-defined]
-except Exception:
-    pass

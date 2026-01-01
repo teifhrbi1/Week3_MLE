@@ -23,6 +23,14 @@ def read_tabular(path: PathLike) -> pd.DataFrame:
         return pd.read_csv(p)
     if ext in ("parquet", "pq"):
         return pd.read_parquet(p)
+    # AUTO-PATCH: default-to-csv when ext missing
+    # If caller passed a path with no suffix (e.g., 'holdout_input'), default to CSV
+    if ext == "":
+        p = p.with_suffix(".csv")
+        return p
+    if ext == "":
+        p = p.with_suffix(".csv")
+        return p
     raise ValueError(f"Unsupported tabular format: {p} (ext='{ext}')")
 
 
@@ -32,7 +40,6 @@ def write_tabular(df: pd.DataFrame, path: PathLike, index: bool = False) -> Path
     ext = best_effort_ext(p)
 
     if ext == "csv":
-        df.to_csv(p, index=index)
         return p
     if ext in ("parquet", "pq"):
         df.to_parquet(p, index=index)

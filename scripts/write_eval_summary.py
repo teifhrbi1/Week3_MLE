@@ -1,8 +1,8 @@
-
 from __future__ import annotations
 from pathlib import Path
 import json
 import argparse
+
 
 def latest_run_dir(models_dir: Path) -> Path:
     runs_dir = models_dir / "runs"
@@ -11,10 +11,12 @@ def latest_run_dir(models_dir: Path) -> Path:
         raise SystemExit(f"❌ No runs found in: {runs_dir}")
     return max(runs, key=lambda p: p.stat().st_mtime)
 
+
 def read_json(p: Path) -> dict:
     if not p.exists():
         raise SystemExit(f"❌ Missing file: {p}")
     return json.loads(p.read_text())
+
 
 def safe_float(x):
     try:
@@ -22,10 +24,12 @@ def safe_float(x):
     except Exception:
         return None
 
+
 def format_metric(v):
     if v is None:
         return "N/A"
     return f"{v:.4f}"
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -35,7 +39,11 @@ def main():
 
     root = Path(".").resolve()
     models_dir = root / "models"
-    run_dir = latest_run_dir(models_dir) if args.run == "latest" else (models_dir / "runs" / args.run)
+    run_dir = (
+        latest_run_dir(models_dir)
+        if args.run == "latest"
+        else (models_dir / "runs" / args.run)
+    )
     if not run_dir.exists():
         raise SystemExit(f"❌ Run dir not found: {run_dir}")
 
@@ -77,7 +85,12 @@ def main():
     target = meta.get("target", "Unknown")
     data_path = meta.get("data_path", "Unknown")
     run_id = meta.get("run_id") or run_dir.name
-    threshold = meta.get("threshold") or meta.get("decision_threshold") or meta.get("chosen_threshold") or 0.5
+    threshold = (
+        meta.get("threshold")
+        or meta.get("decision_threshold")
+        or meta.get("chosen_threshold")
+        or 0.5
+    )
 
     md = []
     md.append("# Evaluation Summary — Week 3 Baseline\n")
@@ -93,12 +106,20 @@ def main():
     md.append("")
 
     md.append("## Error analysis")
-    md.append("- Review false positives/negatives by saving holdout predictions (y_true, y_pred, proba, ids).")
-    md.append("- Leakage check: confirm target column removed from inference input and no post-outcome features.")
-    md.append("- Slice errors by segments (e.g., country, n_orders bins) to identify weak areas.\n")
+    md.append(
+        "- Review false positives/negatives by saving holdout predictions (y_true, y_pred, proba, ids)."
+    )
+    md.append(
+        "- Leakage check: confirm target column removed from inference input and no post-outcome features."
+    )
+    md.append(
+        "- Slice errors by segments (e.g., country, n_orders bins) to identify weak areas.\n"
+    )
 
     md.append("## Recommendation")
-    md.append("- Recommendation: **DON’T SHIP YET** unless baseline is present and model clearly improves holdout metric.")
+    md.append(
+        "- Recommendation: **DON’T SHIP YET** unless baseline is present and model clearly improves holdout metric."
+    )
     md.append(f"- Threshold used: {threshold}\n")
 
     out_path = Path(args.out)
@@ -106,6 +127,7 @@ def main():
     out_path.write_text("\n".join(md), encoding="utf-8")
     print(f"✅ Wrote: {out_path}")
     print(f"✅ Using run folder: {run_dir.name}")
+
 
 if __name__ == "__main__":
     main()

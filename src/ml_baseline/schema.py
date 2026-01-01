@@ -16,10 +16,15 @@ class InputSchema:
 
 def _is_numeric_dtype_str(dt: str) -> bool:
     s = (dt or "").lower()
-    return any(x in s for x in ["int", "int64", "int32", "float", "float64", "float32", "number"])
+    return any(
+        x in s
+        for x in ["int", "int64", "int32", "float", "float64", "float32", "number"]
+    )
 
 
-def validate_and_align(df_in: pd.DataFrame, schema: InputSchema) -> tuple[pd.DataFrame, pd.DataFrame]:
+def validate_and_align(
+    df_in: pd.DataFrame, schema: InputSchema
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Validate inference/training input against a schema and return:
       - X: DataFrame with REQUIRED features only, aligned in schema order
@@ -33,7 +38,9 @@ def validate_and_align(df_in: pd.DataFrame, schema: InputSchema) -> tuple[pd.Dat
     # 1) Forbidden columns check (fail fast)
     forbidden_present = [c for c in schema.forbidden_columns if c in df_in.columns]
     if forbidden_present:
-        raise ValueError(f"Forbidden columns present in inference input: {forbidden_present}")
+        raise ValueError(
+            f"Forbidden columns present in inference input: {forbidden_present}"
+        )
 
     # 2) Missing required features check (fail fast)
     missing = [c for c in schema.required_feature_columns if c not in df_in.columns]
@@ -64,7 +71,9 @@ def validate_and_align(df_in: pd.DataFrame, schema: InputSchema) -> tuple[pd.Dat
 def schema_from_dict(d: dict[str, Any]) -> InputSchema:
     # Helper (optional): supports slightly different keys
     return InputSchema(
-        required_feature_columns=d.get("required_feature_columns") or d.get("required_columns") or [],
+        required_feature_columns=d.get("required_feature_columns")
+        or d.get("required_columns")
+        or [],
         optional_id_columns=d.get("optional_id_columns") or d.get("id_columns") or [],
         forbidden_columns=d.get("forbidden_columns") or d.get("forbidden") or [],
         feature_dtypes=d.get("feature_dtypes") or d.get("dtypes") or {},

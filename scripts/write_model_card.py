@@ -38,7 +38,11 @@ def pick_dataset_hash(meta: Dict[str, Any], feat_path: Path) -> str:
     # Try common keys first, else compute from the feature table file
     for k in meta.keys():
         lk = k.lower()
-        if "sha256" in lk or ("hash" in lk and "data" in lk) or ("dataset" in lk and "hash" in lk):
+        if (
+            "sha256" in lk
+            or ("hash" in lk and "data" in lk)
+            or ("dataset" in lk and "hash" in lk)
+        ):
             v = meta.get(k)
             if isinstance(v, str) and v.strip():
                 return v.strip()
@@ -62,7 +66,9 @@ def find_schema(run_dir: Path) -> Dict[str, Any]:
     return {}
 
 
-def normalize_schema(schema: Dict[str, Any], meta: Dict[str, Any]) -> Tuple[list[str], list[str], list[str]]:
+def normalize_schema(
+    schema: Dict[str, Any], meta: Dict[str, Any]
+) -> Tuple[list[str], list[str], list[str]]:
     # Return: id_cols, feature_cols, forbidden_cols (best-effort)
     id_cols = []
     feature_cols = []
@@ -70,9 +76,13 @@ def normalize_schema(schema: Dict[str, Any], meta: Dict[str, Any]) -> Tuple[list
 
     # Newer style might store like:
     # required_feature_columns, optional_id_columns, forbidden_columns
-    if "optional_id_columns" in schema and isinstance(schema["optional_id_columns"], list):
+    if "optional_id_columns" in schema and isinstance(
+        schema["optional_id_columns"], list
+    ):
         id_cols = [str(x) for x in schema["optional_id_columns"]]
-    if "required_feature_columns" in schema and isinstance(schema["required_feature_columns"], list):
+    if "required_feature_columns" in schema and isinstance(
+        schema["required_feature_columns"], list
+    ):
         feature_cols = [str(x) for x in schema["required_feature_columns"]]
     if "forbidden_columns" in schema and isinstance(schema["forbidden_columns"], list):
         forbidden_cols = [str(x) for x in schema["forbidden_columns"]]
@@ -107,11 +117,17 @@ def load_holdout_metrics(run_dir: Path) -> Dict[str, Any]:
     return {}
 
 
-def split_baseline_model(metrics: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def split_baseline_model(
+    metrics: Dict[str, Any],
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     # Try multiple common shapes
-    if isinstance(metrics.get("baseline"), dict) and isinstance(metrics.get("model"), dict):
+    if isinstance(metrics.get("baseline"), dict) and isinstance(
+        metrics.get("model"), dict
+    ):
         return metrics["baseline"], metrics["model"]
-    if isinstance(metrics.get("baseline_metrics"), dict) and isinstance(metrics.get("model_metrics"), dict):
+    if isinstance(metrics.get("baseline_metrics"), dict) and isinstance(
+        metrics.get("model_metrics"), dict
+    ):
         return metrics["baseline_metrics"], metrics["model_metrics"]
     # If it's a flat dict (no baseline), treat as model metrics only
     return {}, metrics if isinstance(metrics, dict) else {}
@@ -163,7 +179,11 @@ def main() -> None:
 
     # Feature table path used for training (prefer run_meta)
     data_path_str = str(meta.get("data_path") or "data/processed/features.csv")
-    feat_path = repo_root / data_path_str if not Path(data_path_str).is_absolute() else Path(data_path_str)
+    feat_path = (
+        repo_root / data_path_str
+        if not Path(data_path_str).is_absolute()
+        else Path(data_path_str)
+    )
 
     dataset_hash = pick_dataset_hash(meta, feat_path)
 
@@ -183,7 +203,11 @@ def main() -> None:
     # Repro info
     git_commit = str(meta.get("git_commit") or meta.get("commit") or best_git_commit())
     pip_freeze_path = run_dir / "env" / "pip_freeze.txt"
-    env_line = str(pip_freeze_path) if pip_freeze_path.exists() else "N/A (pip_freeze.txt not found)"
+    env_line = (
+        str(pip_freeze_path)
+        if pip_freeze_path.exists()
+        else "N/A (pip_freeze.txt not found)"
+    )
 
     # Write model card
     out_md = repo_root / "reports" / "model_card.md"
@@ -204,7 +228,7 @@ def main() -> None:
 - Forbidden columns at inference: `{forbidden_cols}`
 
 ## Splits
-- Holdout: {split_strategy}{' stratified' if stratify else ''}, test_size={test_size}, seed={seed}
+- Holdout: {split_strategy}{" stratified" if stratify else ""}, test_size={test_size}, seed={seed}
 
 ## Metrics (holdout)
 - Baseline: {fmt_metrics(baseline_m)}

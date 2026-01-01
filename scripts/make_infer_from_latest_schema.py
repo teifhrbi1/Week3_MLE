@@ -2,11 +2,14 @@ import json
 from pathlib import Path
 import pandas as pd
 
+
 def main() -> None:
     runs_dir = Path("models/runs")
     run_dirs = [p for p in runs_dir.glob("*") if p.is_dir()]
     if not run_dirs:
-        raise SystemExit("❌ No runs found under models/runs. Run: uv run ml-baseline train")
+        raise SystemExit(
+            "❌ No runs found under models/runs. Run: uv run ml-baseline train"
+        )
 
     latest_run = max(run_dirs, key=lambda p: p.stat().st_mtime)
 
@@ -52,6 +55,7 @@ def main() -> None:
     print("✅ Latest run:", latest_run.name)
     print("✅ Wrote:", out)
     print("✅ Columns:", keep)
+
 
 if __name__ == "__main__":
     main()

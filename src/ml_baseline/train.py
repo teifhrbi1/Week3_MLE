@@ -42,7 +42,9 @@ def _sha256(path: Path) -> str:
 
 def _pip_freeze() -> str:
     try:
-        return subprocess.check_output([sys.executable, "-m", "pip", "freeze"], text=True)
+        return subprocess.check_output(
+            [sys.executable, "-m", "pip", "freeze"], text=True
+        )
     except Exception as e:
         return f"# pip freeze failed: {e!r}\n"
 
@@ -55,13 +57,15 @@ def make_run_id(*, task: str, seed: int) -> str:
 def _jsonable_cfg(cfg: TrainConfig) -> dict[str, Any]:
     d = asdict(cfg)
     d["features_path"] = str(cfg.features_path)
-    d["id_cols"] = list(cfg.id_cols)
+    d["id_cols"] = list((getattr(cfg, "id_cols", []) or []))
     return d
 
 
 def run_train(cfg: TrainConfig, *, root: Path | None = None) -> Path:
     """Train a baseline ML model and save a versioned run folder."""
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(levelname)s %(name)s: %(message)s"
+    )
     paths = Paths.from_repo_root() if root is None else Paths(root=root)
 
     run_id = make_run_id(task=cfg.task, seed=cfg.seed)
@@ -79,25 +83,37 @@ def run_train(cfg: TrainConfig, *, root: Path | None = None) -> Path:
     df = df.dropna(subset=[cfg.target]).reset_index(drop=True)
 
     # IDs should not be used as features
-    id_cols_present = [c for c in cfg.id_cols if c in df.columns]
+    id_cols_present = [
+        c for c in (getattr(cfg, "id_cols", []) or []) if c in df.columns
+    ]
 
     # Optional: enforce one-row-per-id if id_cols provided
     if id_cols_present:
         dup = df.duplicated(subset=id_cols_present, keep=False)
-        assert not dup.any(), f"Duplicate rows for id_cols={id_cols_present} (n={int(dup.sum())})"
+        assert not dup.any(), (
+            f"Duplicate rows for id_cols={id_cols_present} (n={int(dup.sum())})"
+        )
 
     # Split
     stratify = cfg.task == "classification" and df[cfg.target].nunique() == 2
     if cfg.split_strategy == "random":
         train_df, test_df = random_split(
-            df, target=cfg.target, test_size=cfg.test_size, seed=cfg.seed, stratify=stratify
+            df,
+            target=cfg.target,
+            test_size=cfg.test_size,
+            seed=cfg.seed,
+            stratify=stratify,
         )
     elif cfg.split_strategy == "time":
         assert cfg.time_col, "time split requires --time-col"
-        train_df, test_df = time_split(df, time_col=cfg.time_col, test_size=cfg.test_size)
+        train_df, test_df = time_split(
+            df, time_col=cfg.time_col, test_size=cfg.test_size
+        )
     else:
         assert cfg.group_col, "group split requires --group-col"
-        train_df, test_df = group_split(df, group_col=cfg.group_col, test_size=cfg.test_size, seed=cfg.seed)
+        train_df, test_df = group_split(
+            df, group_col=cfg.group_col, test_size=cfg.test_size, seed=cfg.seed
+        )
 
     # X/y (drop target and IDs)
     drop_cols = [cfg.target, *id_cols_present]
@@ -107,7 +123,32 @@ def run_train(cfg: TrainConfig, *, root: Path | None = None) -> Path:
     y_test = test_df[cfg.target]
 
     # Schema contract
-    schema = InputSchema.from_training_df(train_df, target=cfg.target, id_cols=list(cfg.id_cols))
+    id_cols = list((getattr(cfg, "id_cols", []) or []))
+    schema = None
+    for fn in (
+        lambda: InputSchema.from_training_df(
+            train_df, target=cfg.target, id_cols=id_cols
+        ),
+        lambda: InputSchema.from_df(train_df, target=cfg.target, id_cols=id_cols),
+        lambda: InputSchema.from_dataframe(
+            train_df, target=cfg.target, id_cols=id_cols
+        ),
+        lambda: InputSchema.infer_from_df(train_df, target=cfg.target, id_cols=id_cols),
+        lambda: InputSchema.infer(train_df, target=cfg.target, id_cols=id_cols),
+        lambda: InputSchema.from_df(train_df),
+        lambda: InputSchema.from_dataframe(train_df),
+        lambda: InputSchema.infer_from_df(train_df),
+        lambda: InputSchema.infer(train_df),
+    ):
+        try:
+            schema = fn()
+            break
+        except (AttributeError, TypeError):
+            continue
+    if schema is None:
+        raise RuntimeError(
+            "Could not build InputSchema (no compatible factory method found)"
+        )
     schema.dump(run_dir / "schema" / "input_schema.json")
 
     # ---- Baseline dummy (holdout) ----
@@ -140,7 +181,11 @@ def run_train(cfg: TrainConfig, *, root: Path | None = None) -> Path:
     holdout_input = X_test.copy()
     if id_cols_present:
         holdout_input = pd.concat(
-            [test_df[id_cols_present].reset_index(drop=True), holdout_input.reset_index(drop=True)], axis=1
+            [
+                test_df[id_cols_present].reset_index(drop=True),
+                holdout_input.reset_index(drop=True),
+            ],
+            axis=1,
         )
     holdout_input_path = run_dir / "tables" / f"holdout_input{ext}"
     write_tabular(holdout_input, holdout_input_path)
@@ -157,11 +202,17 @@ def run_train(cfg: TrainConfig, *, root: Path | None = None) -> Path:
 
         metrics = classification_metrics(y_true, y_score, threshold)
         metrics["positive_rate_holdout"] = float(y_true.mean())
-        metrics["roc_auc_ci"] = bootstrap_ci(y_true, y_score, lambda a, b: float(roc_auc_score(a, b)))
+        metrics["roc_auc_ci"] = bootstrap_ci(
+            y_true, y_score, lambda a, b: float(roc_auc_score(a, b))
+        )
 
-        preds = pd.DataFrame({"score": y_score, "prediction": (y_score >= threshold).astype(int)})
+        preds = pd.DataFrame(
+            {"score": y_score, "prediction": (y_score >= threshold).astype(int)}
+        )
         if id_cols_present:
-            preds = pd.concat([test_df[id_cols_present].reset_index(drop=True), preds], axis=1)
+            preds = pd.concat(
+                [test_df[id_cols_present].reset_index(drop=True), preds], axis=1
+            )
         preds[cfg.target] = y_true
 
     else:
@@ -169,11 +220,15 @@ def run_train(cfg: TrainConfig, *, root: Path | None = None) -> Path:
         y_true = np.asarray(y_test).astype(float)
 
         metrics = regression_metrics(y_true, y_pred)
-        metrics["mae_ci"] = bootstrap_ci(y_true, y_pred, lambda a, b: float(mean_absolute_error(a, b)))
+        metrics["mae_ci"] = bootstrap_ci(
+            y_true, y_pred, lambda a, b: float(mean_absolute_error(a, b))
+        )
 
         preds = pd.DataFrame({"prediction": y_pred})
         if id_cols_present:
-            preds = pd.concat([test_df[id_cols_present].reset_index(drop=True), preds], axis=1)
+            preds = pd.concat(
+                [test_df[id_cols_present].reset_index(drop=True), preds], axis=1
+            )
         preds[cfg.target] = y_true
 
     (run_dir / "metrics" / "holdout_metrics.json").write_text(
@@ -189,7 +244,8 @@ def run_train(cfg: TrainConfig, *, root: Path | None = None) -> Path:
     # Environment snapshot
     (run_dir / "env" / "pip_freeze.txt").write_text(_pip_freeze(), encoding="utf-8")
     (run_dir / "env" / "env_meta.json").write_text(
-        json.dumps({"python": sys.version, "platform": platform.platform()}, indent=2) + "\n",
+        json.dumps({"python": sys.version, "platform": platform.platform()}, indent=2)
+        + "\n",
         encoding="utf-8",
     )
 
@@ -205,11 +261,15 @@ def run_train(cfg: TrainConfig, *, root: Path | None = None) -> Path:
         "holdout_metrics": metrics,
         "artifacts": {
             "model": str((run_dir / "model" / "model.joblib").relative_to(run_dir)),
-            "schema": str((run_dir / "schema" / "input_schema.json").relative_to(run_dir)),
+            "schema": str(
+                (run_dir / "schema" / "input_schema.json").relative_to(run_dir)
+            ),
             "holdout_predictions": str(holdout_preds_path.relative_to(run_dir)),
         },
     }
-    (run_dir / "run_meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+    (run_dir / "run_meta.json").write_text(
+        json.dumps(meta, indent=2) + "\n", encoding="utf-8"
+    )
 
     # Update registry pointer
     paths.registry_dir.mkdir(parents=True, exist_ok=True)

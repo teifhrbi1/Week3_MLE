@@ -1,6 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 
+
 def resolve_run_dir(run: str, *, models_dir: Path) -> Path:
     if run == "latest":
         p = models_dir / "registry" / "latest.txt"

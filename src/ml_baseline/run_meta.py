@@ -57,7 +57,9 @@ def write_run_meta(
     }
 
     run_dir.mkdir(parents=True, exist_ok=True)
-    (run_dir / "run_meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+    (run_dir / "run_meta.json").write_text(
+        json.dumps(meta, indent=2) + "\n", encoding="utf-8"
+    )
 
     registry_dir = Path(registry_dir)
     registry_dir.mkdir(parents=True, exist_ok=True)

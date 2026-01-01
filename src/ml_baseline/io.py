@@ -5,6 +5,7 @@ import pandas as pd
 
 PathLike = Union[str, Path]
 
+
 def best_effort_ext(p: Optional[PathLike] = None) -> str:
     """
     Return lowercase file extension (without the dot).
@@ -14,6 +15,7 @@ def best_effort_ext(p: Optional[PathLike] = None) -> str:
         return ""
     return Path(str(p)).suffix.lower().lstrip(".")
 
+
 def read_tabular(path: PathLike) -> pd.DataFrame:
     p = Path(path)
     ext = best_effort_ext(p)
@@ -22,6 +24,7 @@ def read_tabular(path: PathLike) -> pd.DataFrame:
     if ext in ("parquet", "pq"):
         return pd.read_parquet(p)
     raise ValueError(f"Unsupported tabular format: {p} (ext='{ext}')")
+
 
 def write_tabular(df: pd.DataFrame, path: PathLike, index: bool = False) -> Path:
     p = Path(path)

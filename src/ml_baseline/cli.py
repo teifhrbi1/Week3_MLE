@@ -1,5 +1,4 @@
 from __future__ import annotations
-import json
 import logging
 from pathlib import Path
 from typing import Optional
@@ -11,7 +10,9 @@ from .predict import resolve_run_dir, run_predict
 from .sample_data import make_sample_feature_table
 from .train import run_train
 
-app = typer.Typer(add_completion=False, help="Week 3 — baseline ML system (train/eval/predict).")
+app = typer.Typer(
+    add_completion=False, help="Week 3 — baseline ML system (train/eval/predict)."
+)
 log = logging.getLogger(__name__)
 
 
@@ -30,17 +31,33 @@ def make_sample_data(n_users: int = 50) -> None:
 @app.command()
 def train(
     target: str = typer.Option(..., "--target", help="Target column name."),
-    task: str = typer.Option("classification", "--task", help="classification|regression"),
-    split_strategy: str = typer.Option("random", "--split-strategy", help="random|time|group"),
-    features: Optional[Path] = typer.Option(None, "--features", help="Path to features table."),
+    task: str = typer.Option(
+        "classification", "--task", help="classification|regression"
+    ),
+    split_strategy: str = typer.Option(
+        "random", "--split-strategy", help="random|time|group"
+    ),
+    features: Optional[Path] = typer.Option(
+        None, "--features", help="Path to features table."
+    ),
     test_size: float = typer.Option(0.2, "--test-size", min=0.05, max=0.5),
     seed: int = typer.Option(42, "--seed"),
-    threshold_strategy: str = typer.Option("fixed", "--threshold-strategy", help="fixed|max_f1"),
+    threshold_strategy: str = typer.Option(
+        "fixed", "--threshold-strategy", help="fixed|max_f1"
+    ),
     threshold_value: float = typer.Option(0.5, "--threshold", min=0.0, max=1.0),
 ) -> None:
     """Train a baseline model and save artifacts."""
     paths = Paths.from_repo_root()
-    feat_path = features
+    feat_path = features or (paths.root / "data/processed/features.csv")
+    if getattr(feat_path, "suffix", "") == "":
+        c = feat_path.with_suffix(".csv")
+        if c.exists():
+            feat_path = c
+        else:
+            c = feat_path.with_suffix(".parquet")
+            if c.exists():
+                feat_path = c
     if feat_path is None:
         ext = best_effort_ext()
         feat_path = paths.data_processed_dir / f"features{ext}"
@@ -63,13 +80,19 @@ def train(
 def predict(
     run: str = typer.Option("latest", "--run", help="'latest' or a path to a run dir."),
     input: Path = typer.Option(..., "--input", exists=True, help="Input CSV/Parquet."),
-    output: Path = typer.Option(Path("outputs/preds.csv"), "--output", help="Output path."),
-    threshold: float | None = typer.Option(None, "--threshold", help="Override decision threshold (classification)."),
+    output: Path = typer.Option(
+        Path("outputs/preds.csv"), "--output", help="Output path."
+    ),
+    threshold: float | None = typer.Option(
+        None, "--threshold", help="Override decision threshold (classification)."
+    ),
 ) -> None:
     """Batch predict using a saved run."""
     paths = Paths.from_repo_root()
     run_dir = resolve_run_dir(run, models_dir=paths.models_dir)
-    cfg = PredictConfig(run_dir=run_dir, input_path=input, output_path=output, threshold=threshold)
+    cfg = PredictConfig(
+        run_dir=run_dir, input_path=input, output_path=output, threshold=threshold
+    )
     run_predict(cfg)
     typer.echo(f"Wrote: {output}")
 
@@ -85,3 +108,12 @@ def show_run(run: str = "latest") -> None:
 
 if __name__ == "__main__":
     app()
+
+
+def main():
+    """Console entrypoint for `ml-baseline`."""
+    app()
+
+
+if __name__ == "__main__":
+    main()

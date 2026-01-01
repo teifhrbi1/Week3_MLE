@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from .config import Paths
-from .io import best_effort_ext, write_tabular
+from .io import write_tabular
 
 
 def make_sample_feature_table(

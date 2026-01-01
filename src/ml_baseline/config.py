@@ -67,6 +67,7 @@ class TrainConfig:
     def __init__(self, **kwargs: Any):
         self.__dict__.update(kwargs)
 
+
 class PredictConfig:
     def __init__(self, **kwargs: Any):
         self.__dict__.update(kwargs)

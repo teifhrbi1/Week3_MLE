@@ -1,4 +1,3 @@
-
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,6 +7,9 @@ import pandas as pd
 import joblib
 
 from ml_baseline.schema import InputSchema, schema_from_dict, validate_and_align
+
+
+from typing import Union
 
 
 @dataclass(frozen=True)
@@ -64,27 +66,40 @@ def run_predict(cfg: PredictConfig) -> None:
     df_in = read_tabular(cfg.input_path)
     X, ids = validate_and_align(df_in, schema)
 
-    saved_t = meta.get("threshold") or meta.get("decision_threshold") or meta.get("chosen_threshold")
-    t = cfg.threshold if cfg.threshold is not None else (saved_t if isinstance(saved_t, (int, float)) else 0.5)
+    saved_t = (
+        meta.get("threshold")
+        or meta.get("decision_threshold")
+        or meta.get("chosen_threshold")
+    )
+    t = (
+        cfg.threshold
+        if cfg.threshold is not None
+        else (saved_t if isinstance(saved_t, (int, float)) else 0.5)
+    )
 
     if hasattr(model, "predict_proba"):
         proba = model.predict_proba(X)
         score = proba[:, 1] if proba.ndim == 2 and proba.shape[1] > 1 else proba[:, 0]
-        out = pd.DataFrame({"score": score, "prediction": (score >= float(t)).astype(int)})
+        out = pd.DataFrame(
+            {"score": score, "prediction": (score >= float(t)).astype(int)}
+        )
     else:
         out = pd.DataFrame({"prediction": model.predict(X)})
 
     if ids.shape[1] > 0:
-        out = pd.concat([ids.reset_index(drop=True), out.reset_index(drop=True)], axis=1)
+        out = pd.concat(
+            [ids.reset_index(drop=True), out.reset_index(drop=True)], axis=1
+        )
 
     write_tabular(out, cfg.output_path)
 
-from pathlib import Path
-from typing import Optional, Union
 
 PathLike = Union[str, Path]
 
-def resolve_run_dir(run_id: Optional[str] = None, runs_root: PathLike = "models/runs") -> Path:
+
+def resolve_run_dir(
+    run_id: Optional[str] = None, runs_root: PathLike = "models/runs"
+) -> Path:
     """
     Resolve a run directory under models/runs.
 
@@ -97,33 +112,12 @@ def resolve_run_dir(run_id: Optional[str] = None, runs_root: PathLike = "models/
         if not root.exists():
             raise FileNotFoundError(f"Runs root not found: {root}")
 
-        run_dirs = sorted([d for d in root.iterdir() if d.is_dir()], key=lambda d: d.name)
+        run_dirs = sorted(
+            [d for d in root.iterdir() if d.is_dir()], key=lambda d: d.name
+        )
         if not run_dirs:
             raise FileNotFoundError(f"No run directories found under: {root}")
 
-        return run_dirs[-1]
-
-    return root / str(run_id)
-
-# --- Compatibility wrapper (expected by cli.py) ---
-from pathlib import Path
-from typing import Optional, Union
-
-PathLike = Union[str, Path]
-
-def resolve_run_dir(run_id: Optional[str] = None, *, models_dir: PathLike = "models") -> Path:
-    """
-    cli.py calls: resolve_run_dir(run, models_dir=paths.models_dir)
-    We resolve runs under: <models_dir>/runs
-    """
-    root = Path(models_dir) / "runs"
-
-    if run_id is None or str(run_id).lower() == "latest":
-        if not root.exists():
-            raise FileNotFoundError(f"Runs root not found: {root}")
-        run_dirs = sorted([d for d in root.iterdir() if d.is_dir()], key=lambda d: d.name)
-        if not run_dirs:
-            raise FileNotFoundError(f"No run directories found under: {root}")
         return run_dirs[-1]
 
     return root / str(run_id)

@@ -70,10 +70,10 @@ def patch_sample_data_ext() -> None:
             r"(?ms)def\s+best_effort_ext\s*\([^)]*\)\s*:\s*.*?\n(?=\s*def|\Z)",
             (
                 "def best_effort_ext() -> str:\n"
-                "    \"\"\"Return a supported extension for writing tabular data.\n"
+                '    """Return a supported extension for writing tabular data.\n'
                 "    We default to CSV because it's universally supported.\n"
-                "    \"\"\"\n"
-                "    return \".csv\"\n\n"
+                '    """\n'
+                '    return ".csv"\n\n'
             ),
             t,
             count=1,
@@ -104,7 +104,10 @@ def patch_run_train_cfg() -> None:
         die("❌ Can't find def run_train(...) inside src/ml_baseline")
 
     # Prefer train.py if present
-    p = next((x for x in run_train_files if x.name in {"train.py", "training.py"}), run_train_files[0])
+    p = next(
+        (x for x in run_train_files if x.name in {"train.py", "training.py"}),
+        run_train_files[0],
+    )
     lines = read_text(p).splitlines(True)
     original = "".join(lines)
 
@@ -132,7 +135,11 @@ def patch_run_train_cfg() -> None:
     for j in range(def_i + 1, len(lines)):
         ln = lines[j]
         # stop if we leave the function block (indent back)
-        if ln.strip() and (len(re.match(r"^(\s*)", ln).group(1)) <= len(def_indent)) and not ln.startswith(body_indent):
+        if (
+            ln.strip()
+            and (len(re.match(r"^(\s*)", ln).group(1)) <= len(def_indent))
+            and not ln.startswith(body_indent)
+        ):
             break
 
         stripped = ln.strip().replace(" ", "")
@@ -160,12 +167,15 @@ def patch_run_train_cfg() -> None:
             insert_at += 1  # include closing quote line
 
     # Only insert if not already present
-    joined = "".join(lines[def_i:def_i + 80])
+    joined = "".join(lines[def_i : def_i + 80])
     if "if cfg is None" not in joined:
         block = (
-            body_indent + "# Backward compatible: allow calling run_train() with no cfg\n"
-            + body_indent + "if cfg is None:\n"
-            + body_indent + "    cfg = TrainConfig()\n\n"
+            body_indent
+            + "# Backward compatible: allow calling run_train() with no cfg\n"
+            + body_indent
+            + "if cfg is None:\n"
+            + body_indent
+            + "    cfg = TrainConfig()\n\n"
         )
         lines.insert(insert_at, block)
 

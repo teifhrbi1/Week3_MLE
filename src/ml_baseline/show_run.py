@@ -9,7 +9,9 @@ def _resolve_run_id(run_ref: str, registry_dir: Path = Path("models/registry")) 
     if run_ref == "latest":
         p = registry_dir / "latest.txt"
         if not p.exists():
-            raise FileNotFoundError("models/registry/latest.txt not found (no latest pointer yet).")
+            raise FileNotFoundError(
+                "models/registry/latest.txt not found (no latest pointer yet)."
+            )
         return p.read_text(encoding="utf-8").strip()
     return run_ref
 
